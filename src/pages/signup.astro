@@ -1,0 +1,98 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AuthCard from "../components/AuthCard.astro";
+import Icon from "../components/Icon.astro";
+---
+<Layout titleKey="createAccount">
+  <AuthCard subtitleKey="signUpSubtitle">
+    <form id="signup-form" class="p-4 space-y-4" novalidate>
+      <div class="space-y-1.5">
+        <label for="licenseKey" class="na-label"><span data-i18n="licenseRequiredLabel">License Key</span> <span class="ac-text">*</span></label>
+        <div class="relative group">
+          <input id="licenseKey" name="licenseKey" type="text" autocomplete="off" required class="na-input font-mono uppercase" data-i18n-placeholder="licensePlaceholder" />
+          <Icon name="key-round" class="size-4 na-field-icon" />
+        </div>
+      </div>
+      <div class="space-y-1.5">
+        <label for="username" class="na-label"><span data-i18n="usernameRequiredLabel">Username</span> <span class="ac-text">*</span></label>
+        <div class="relative group">
+          <input id="username" name="username" type="text" autocomplete="username" required class="na-input" data-i18n-placeholder="chooseUsernamePlaceholder" />
+          <Icon name="user" class="size-4 na-field-icon" />
+        </div>
+      </div>
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between">
+          <label for="email" class="na-label" data-i18n="emailLabel">Email</label>
+          <span class="text-[10px] text-zinc-600" data-i18n="emailOptional"></span>
+        </div>
+        <div class="relative group">
+          <input id="email" name="email" type="email" autocomplete="email" class="na-input" data-i18n-placeholder="emailPlaceholder" />
+          <Icon name="mail" class="size-4 na-field-icon" />
+        </div>
+      </div>
+      <div class="space-y-1.5">
+        <label for="password" class="na-label"><span data-i18n="passwordRequiredLabel">Password</span> <span class="ac-text">*</span></label>
+        <div class="relative group">
+          <input id="password" name="password" type="password" autocomplete="new-password" required placeholder="••••••••" class="na-input pr-10" />
+          <Icon name="lock" class="size-4 na-field-icon" />
+          <button type="button" data-toggle-password="password" aria-label="Show password" class="absolute right-3.5 top-3.5 text-zinc-600 hover:text-zinc-400 transition cursor-pointer"></button>
+        </div>
+      </div>
+
+      <div data-captcha></div>
+
+      <button type="submit" class="ac-btn group mt-2 w-full h-11 rounded-xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+        <span data-i18n="createAccountButton">Create Account</span>
+        <Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-0.5" />
+      </button>
+
+      <div class="pt-2 text-center border-t border-white/[0.04]">
+        <p class="text-xs text-zinc-500">
+          <span data-i18n="alreadyHaveAccount"></span>
+          <a href="/signin" class="font-bold hover:underline ac-text" data-i18n="signInLink"></a>
+        </p>
+      </div>
+    </form>
+  </AuthCard>
+</Layout>
+
+<script>
+  import { api, errorMessage } from "../lib/api.js";
+  import { t } from "../lib/i18n.js";
+  import { loadAuthPortal } from "../lib/portal.js";
+  import { setBusy, toast } from "../lib/ui.js";
+  import { captchaToken, enableCaptchaFrom, mountCaptcha } from "../lib/captcha.js";
+  import { checkSignUp } from "../lib/validate.js";
+
+  const form = document.getElementById("signup-form") as HTMLFormElement;
+  const submit = form.querySelector("button[type=submit]") as HTMLButtonElement;
+
+  loadAuthPortal().then((app) => {
+    // Registration closed by the developer: same redirect as the built-in portal.
+    if (app && !app.canRegister) window.location.replace("/signin");
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const value = (name: string) => (form.elements.namedItem(name) as HTMLInputElement).value;
+    const input = { licenseKey: value("licenseKey"), username: value("username"), email: value("email"), password: value("password") };
+    const invalid = checkSignUp(input);
+    if (invalid) return toast(t(invalid), "error");
+    setBusy(submit, true);
+    const result = await api.signUp({
+      license: input.licenseKey.trim(),
+      username: input.username.trim(),
+      ...(input.email.trim() ? { email: input.email.trim() } : {}),
+      password: input.password,
+      captchaToken: captchaToken(form),
+    });
+    if (!result.ok) {
+      setBusy(submit, false);
+      enableCaptchaFrom(result);
+      mountCaptcha(form);
+      return toast(errorMessage(result), "error");
+    }
+    toast(t("accountCreatedToast"));
+    setTimeout(() => window.location.assign("/signin"), 900);
+  });
+</script>

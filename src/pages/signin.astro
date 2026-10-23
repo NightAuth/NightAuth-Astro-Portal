@@ -1,0 +1,120 @@
+---
+import Layout from "../layouts/Layout.astro";
+import AuthCard from "../components/AuthCard.astro";
+import Icon from "../components/Icon.astro";
+---
+<Layout titleKey="signInButton">
+  <AuthCard subtitleKey="signInSubtitle">
+    <div class="p-4 pb-0">
+      <div role="tablist" class="grid grid-cols-2 gap-1 p-1 rounded-xl ac-bg-08 border ac-border-15">
+        <button type="button" role="tab" aria-selected="true" data-login-type="credentials" class="ac-tab py-2 text-xs font-bold rounded-lg transition-all cursor-pointer" data-i18n="tabAccount">Account</button>
+        <button type="button" role="tab" aria-selected="false" data-login-type="license" class="ac-tab py-2 text-xs font-bold rounded-lg transition-all cursor-pointer" data-i18n="tabLicense">License Key</button>
+      </div>
+    </div>
+
+    <form id="signin-form" class="p-4 space-y-4" novalidate>
+      <div data-section="credentials" class="space-y-4">
+        <div class="space-y-1.5">
+          <label for="username" class="na-label" data-i18n="usernameLabel">Username</label>
+          <div class="relative group">
+            <input id="username" name="username" type="text" autocomplete="username" class="na-input" data-i18n-placeholder="usernamePlaceholder" />
+            <Icon name="user" class="size-4 na-field-icon" />
+          </div>
+        </div>
+        <div class="space-y-1.5">
+          <div class="flex items-center justify-between">
+            <label for="password" class="na-label" data-i18n="passwordLabel">Password</label>
+            <a href="/forgot-password" data-forgot-link class="text-xs font-medium text-zinc-500 hover:text-zinc-300 transition-colors" data-i18n="forgotPassword"></a>
+          </div>
+          <div class="relative group">
+            <input id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" class="na-input pr-10" />
+            <Icon name="lock" class="size-4 na-field-icon" />
+            <button type="button" data-toggle-password="password" aria-label="Show password" class="absolute right-3.5 top-3.5 text-zinc-600 hover:text-zinc-400 transition cursor-pointer"></button>
+          </div>
+        </div>
+      </div>
+
+      <div data-section="license" hidden class="space-y-1.5">
+        <label for="license" class="na-label" data-i18n="licenseLabel">License Key</label>
+        <div class="relative group">
+          <input id="license" name="license" type="text" autocomplete="off" class="na-input font-mono uppercase" data-i18n-placeholder="licensePlaceholder" />
+          <Icon name="key-round" class="size-4 na-field-icon" />
+        </div>
+        <p class="text-[11px] text-zinc-600" data-i18n="licenseHelp"></p>
+      </div>
+
+      <div data-captcha></div>
+
+      <button type="submit" class="ac-btn group mt-2 w-full h-11 rounded-xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2 cursor-pointer">
+        <span data-submit-label data-i18n="signInButton">Sign In</span>
+        <Icon name="arrow-right" class="size-4 transition-transform group-hover:translate-x-0.5" />
+      </button>
+    </form>
+
+    <div data-register-footer class="px-4 pb-4 pt-3 text-center border-t border-white/[0.04]">
+      <p class="text-xs text-zinc-500">
+        <span data-i18n="dontHaveAccount"></span>
+        <a href="/signup" class="font-bold hover:underline ac-text" data-i18n="createAccount"></a>
+      </p>
+    </div>
+  </AuthCard>
+</Layout>
+
+<script>
+  import { api, errorMessage } from "../lib/api.js";
+  import { t } from "../lib/i18n.js";
+  import { loadAuthPortal } from "../lib/portal.js";
+  import { setBusy, toast } from "../lib/ui.js";
+  import { captchaToken, enableCaptchaFrom, mountCaptcha } from "../lib/captcha.js";
+  import { checkSignIn } from "../lib/validate.js";
+
+  const form = document.getElementById("signin-form") as HTMLFormElement;
+  const submit = form.querySelector("button[type=submit]") as HTMLButtonElement;
+  const label = form.querySelector("[data-submit-label]") as HTMLElement;
+  let loginType = "credentials";
+
+  document.querySelectorAll<HTMLButtonElement>("[data-login-type]").forEach((tab) =>
+    tab.addEventListener("click", () => {
+      loginType = tab.dataset.loginType!;
+      document.querySelectorAll<HTMLButtonElement>("[data-login-type]").forEach((other) =>
+        other.setAttribute("aria-selected", String(other === tab)),
+      );
+      document.querySelectorAll<HTMLElement>("[data-section]").forEach((section) => {
+        section.hidden = section.dataset.section !== loginType;
+      });
+      label.dataset.i18n = loginType === "license" ? "authenticateKeyButton" : "signInButton";
+      label.textContent = t(label.dataset.i18n);
+    }),
+  );
+
+  loadAuthPortal().then((app) => {
+    if (!app) return;
+    if (!app.canRegister) document.querySelector("[data-register-footer]")?.remove();
+    if (!app.canForgotPassword) document.querySelector("[data-forgot-link]")?.remove();
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const value = (name: string) => (form.elements.namedItem(name) as HTMLInputElement).value;
+    const input = { loginType, username: value("username"), password: value("password"), license: value("license") };
+    const invalid = checkSignIn(input);
+    if (invalid) return toast(t(invalid), "error");
+    setBusy(submit, true);
+    const result = await api.signIn({
+      loginType,
+      ...(loginType === "credentials"
+        ? { username: input.username.trim(), password: input.password }
+        : { license: input.license.trim() }),
+      captchaToken: captchaToken(form),
+    });
+    if (!result.ok) {
+      setBusy(submit, false);
+      enableCaptchaFrom(result);
+      mountCaptcha(form); // Tokens are single-use.
+      return toast(errorMessage(result, "requestFailed"), "error");
+    }
+    if (result.data.requires2fa) return window.location.assign("/2fa-required");
+    toast(t("welcomeBackToast"));
+    window.location.assign("/");
+  });
+</script>

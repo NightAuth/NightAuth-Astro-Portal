@@ -1,0 +1,59 @@
+---
+// Card shell of every auth screen, plus the loading / not-found / offline
+// states the built-in portal shows before the form (lib/portal.js toggles them).
+import Icon from "./Icon.astro";
+import { APP_NAME } from "../config.js";
+
+interface Props {
+  subtitleKey: string;
+}
+const { subtitleKey } = Astro.props;
+---
+<div class="w-full max-w-sm space-y-6">
+  <div data-portal-state="loading" class="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl shadow-2xl overflow-hidden">
+    <div class="border-b border-white/[0.06] px-5 py-4 space-y-2">
+      <div class="na-skeleton h-3.5 w-32 rounded"></div>
+      <div class="na-skeleton h-2.5 w-48 rounded"></div>
+    </div>
+    <div class="p-4 space-y-4">
+      <div class="na-skeleton h-10 rounded-xl"></div>
+      <div class="na-skeleton h-11 rounded-xl"></div>
+      <div class="na-skeleton h-11 rounded-xl"></div>
+      <div class="na-skeleton h-11 rounded-xl ac-bg-20"></div>
+    </div>
+  </div>
+
+  <div data-portal-state="notfound" hidden class="text-center space-y-5">
+    <div class="mx-auto inline-flex items-center justify-center size-16 rounded-2xl border shadow-2xl bg-rose-500/[0.06] border-rose-500/[0.15]">
+      <Icon name="triangle-alert" class="size-7 text-rose-400" />
+    </div>
+    <div class="space-y-2">
+      <h2 class="text-xl font-extrabold text-white" data-i18n="portalNotFoundTitle">Portal Not Found</h2>
+      <p class="text-sm text-zinc-400 leading-relaxed" data-i18n="portalNotFoundBody"></p>
+    </div>
+    <div class="rounded-xl border border-white/[0.08] bg-white/[0.02] p-4">
+      <p class="text-xs text-zinc-500 font-mono break-all" data-portal-id></p>
+    </div>
+  </div>
+
+  <div data-portal-state="offline" hidden class="text-center space-y-5">
+    <div class="mx-auto inline-flex items-center justify-center size-16 rounded-2xl border shadow-2xl bg-amber-500/[0.06] border-amber-500/[0.15]">
+      <Icon name="wifi-off" class="size-7 text-amber-400" />
+    </div>
+    <div class="space-y-2">
+      <h2 class="text-xl font-extrabold text-white" data-i18n="portalOfflineTitle">Portal Offline</h2>
+      <p class="text-sm text-zinc-400 leading-relaxed" data-i18n="portalOfflineBody"></p>
+    </div>
+  </div>
+
+  <div data-portal-state="ready" hidden class="relative z-20 rounded-2xl border ac-border-18 bg-white/[0.02] backdrop-blur-2xl shadow-2xl">
+    <div class="border-b border-white/[0.06] px-5 py-3.5 flex items-center justify-between gap-3 bg-white/[0.01] rounded-t-2xl">
+      <div class="min-w-0 flex-1 pr-2">
+        <h1 class="text-sm font-extrabold tracking-tight text-white truncate" data-app-name>{APP_NAME}</h1>
+        <p class="text-[11px] text-zinc-500 truncate mt-0.5 font-medium" data-i18n={subtitleKey}></p>
+      </div>
+      <div class="shrink-0" data-lang-dropdown></div>
+    </div>
+    <slot />
+  </div>
+</div>

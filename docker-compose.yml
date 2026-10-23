@@ -1,0 +1,9 @@
+services:
+  nightauth-astro-portal:
+    build: .
+    container_name: nightauth-astro-portal
+    restart: unless-stopped
+    ports:
+      - "4321:4321"
+    env_file:
+      - .env

@@ -1,0 +1,37 @@
+{
+  "name": "@nightauth/portal-astro",
+  "version": "1.0.0",
+  "description": "Official NightAuth Custom Customer Portal Template built with Astro and TailwindCSS",
+  "type": "module",
+  "scripts": {
+    "dev": "astro dev",
+    "start": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview"
+  },
+  "keywords": [
+    "nightauth",
+    "customer-portal",
+    "astro",
+    "tailwindcss",
+    "authentication",
+    "licensing",
+    "self-hosted",
+    "i18n"
+  ],
+  "author": "NightAuth",
+  "license": "Elastic-2.0",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "packageManager": "pnpm@11.22.0",
+  "dependencies": {
+    "@astrojs/tailwind": "^5.1.0",
+    "astro": "^4.15.0",
+    "libsodium-wrappers": "0.8.4",
+    "tailwindcss": "^3.4.10"
+  },
+  "devDependencies": {
+    "vite": "^5.4.14"
+  }
+}
